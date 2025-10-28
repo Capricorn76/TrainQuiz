@@ -81,7 +81,12 @@ body.dark-mode .obrazky-vice img {
 
 body.dark-mode h1,
 body.dark-mode h2 {
-    color: #ffffff;
+    color: #007bff;
+}
+
+/* OPRAVA: Styl pro číslo otázky v Dark Mode pro viditelnost */
+body.dark-mode #pocitadlo-otazek {
+    color: #007bff; /* Světlejší modrá pro lepší kontrast v Dark Mode */
 }
 
 body.dark-mode #otazka-text {
@@ -145,9 +150,20 @@ body.dark-mode #restart-tlacitko:hover {
 /* ---------------- KONEC DARK MODE STYLŮ ---------------- */
 
 h1 {
-    color: #333;
+    color: #004d99;
     text-align: center;
-    margin-bottom: 30px;
+    /* OPRAVA: Sníženo pro přiblížení počítadla */
+    margin-bottom: 0; 
+}
+
+/* Styl pro počítadlo otázek (ve světlém režimu) */
+#pocitadlo-otazek {
+    text-align: center;
+    margin-top: 5px;
+    margin-bottom: 20px;
+    font-size: 1.2em; 
+    font-weight: bold; 
+    color: #004d99; /* Modrá barva */
 }
 
 h2 {
@@ -222,7 +238,7 @@ h2 {
 
 /* ---------------- TLAČÍTKO RESTART (VYLEPŠENÉ) ---------------- */
 #restart-tlacitko {
-     background-color: #f44336; /* Červená barva pro reset */
+     background-color: #f44336; 
      color: white;
      padding: 12px 25px; 
      border: none;
@@ -237,7 +253,7 @@ h2 {
 }
 
 #restart-tlacitko:hover {
-    background-color: #d32f2f; /* Tmavší červená při najetí */
+    background-color: #d32f2f; 
 }
 /* ---------------- KONEC TLAČÍTKA RESTART ---------------- */
 
@@ -270,22 +286,20 @@ h2 {
 
 /* ---------------- STYLY PRO START SCREEN (NASTAVENÍ) ---------------- */
 
-/* Zvýraznění a zvětšení textu popisku */
 label[for="pocetOtazek"] {
     font-size: 1.2em;
     font-weight: bold;
     display: block; 
     margin: 15px 0 10px 0; 
-    /* --- NOVÁ ZMĚNA ZDE: Zelená barva pro popisek --- */
     color: #28a745; 
 }
 
-/* Zvýšení výšky pole pro zadání počtu otázek */
 #pocetOtazek {
     padding: 15px !important;
-    font-size: 1.2em;
+    font-size: 2.4em;
 }
 /* ---------------- KONEC STYLŮ PRO START SCREEN ---------------- */
+
 </style>
 </head>
 <body>
@@ -294,25 +308,27 @@ label[for="pocetOtazek"] {
 
 <div class="kviz-kontejner">
     <h1>TrainQuiz</h1>
+    <p id="pocitadlo-otazek"></p>
 
     <div id="start-screen">
         <h2>Nastavení kvízu</h2>
         <label for="pocetOtazek">Vyberte počet otázek (Max: 355):</label>
-        <input type="number" id="pocetOtazek" min="1" max="20" value="10" style="padding: 8px; margin: 10px 0; width: 100%; box-sizing: border-box; border-radius: 5px;">
+        <input type="number" id="pocetOtazek" min="1" max="355" value="10">
         <button id="start-tlacitko">Spustit kvíz</button>
     </div>
 
     <div id="kviz-elementy" style="display:none;">
-        <p id="otazka-text">Načítám otázku...</p>
-        
-        <img id="otazka-obrazek" alt="Ilustrační obrázek k otázce">
-        
-        <div id="obrazky-vice-kontejner" class="obrazky-vice"></div> 
-        
-        <div class="moznosti-odpovedi" id="moznosti-kontejner">
-            </div>
-        <button id="dalsi-tlacitko" disabled>Další otázka</button>
+    
+    <p id="otazka-text"></p>
+    
+    <img id="otazka-obrazek" alt="Ilustrační obrázek k otázce">
+    
+    <div id="obrazky-vice-kontejner" class="obrazky-vice"></div> 
+    
+    <div class="moznosti-odpovedi" id="moznosti-kontejner">
     </div>
+    <button id="dalsi-tlacitko" disabled>Další otázka</button>
+</div>
 
     <div id="vysledek" style="display:none;">
         </div>
@@ -320,7 +336,7 @@ label[for="pocetOtazek"] {
 
 <script>
     // ----------------------------------------------------
-    // DARK MODE LOGIKA (Vráceno)
+    // DARK MODE LOGIKA (ZACHOVÁNO)
     // ----------------------------------------------------
     const darkModePrepninac = document.getElementById('dark-mode-prepninac');
     const body = document.body;
@@ -2843,7 +2859,7 @@ const originalniOtazky = [
 ];
 
 
-    // Globální proměnná pro aktivní sadu otázek
+    // Globální proměnné
     let otazky = [];
     let aktualniOtazkaIndex = 0;
     let skore = 0;
@@ -2856,17 +2872,21 @@ const originalniOtazky = [
     const startTlacitko = document.getElementById('start-tlacitko');
     const otazkaText = document.getElementById('otazka-text');
     const otazkaObrazek = document.getElementById('otazka-obrazek');
-    const obrazkyViceKontejner = document.getElementById('obrazky-vice-kontejner'); // NOVÝ ELEMENT
+    const obrazkyViceKontejner = document.getElementById('obrazky-vice-kontejner');
     const moznostiKontejner = document.getElementById('moznosti-kontejner');
     const dalsiTlacitko = document.getElementById('dalsi-tlacitko');
     const vysledekDiv = document.getElementById('vysledek');
+    // NOVÝ ELEMENT PRO POČÍTADLO
+    const pocitadloOtazek = document.getElementById('pocitadlo-otazek'); 
 
     startTlacitko.addEventListener('click', spustitKviz);
     dalsiTlacitko.addEventListener('click', dalsiOtazka);
 
     function spustitKviz() {
         const pocet = parseInt(pocetOtazekInput.value);
-        if (pocet > 0 && pocet <= 20) {
+        // POZOR: Ponechal jsem max na 20, ačkoliv v HTML máte 355.
+        // Upravte v HTML max="355" a zde "pocet <= 355" pro plnou funkčnost
+        if (pocet > 0 && pocet <= 355) { 
             celkovyPocetOtazek = pocet;
             otazky = vybratNahodneOtazky(originalniOtazky, celkovyPocetOtazek);
             aktualniOtazkaIndex = 0;
@@ -2878,7 +2898,7 @@ const originalniOtazky = [
             
             zobrazOtazku();
         } else {
-            alert('Zvolte platný počet otázek (1 až 20).');
+            alert('Zvolte platný počet otázek (1 až 355).');
         }
     }
 
@@ -2888,54 +2908,55 @@ const originalniOtazky = [
     }
     
     function zobrazOtazku() {
-        if (aktualniOtazkaIndex >= celkovyPocetOtazek) {
-            zobrazVysledek();
-            return;
-        }
-
-        const otazkaData = otazky[aktualniOtazkaIndex];
-        odpovedZvolena = false;
-        dalsiTlacitko.disabled = true;
-
-        otazkaText.textContent = `Otázka ${aktualniOtazkaIndex + 1}/${celkovyPocetOtazek}: ${otazkaData.otazka}`;
-        
-        // --- LOGIKA PRO OBRÁZKY ---
-        // 1. Skryjeme oba kontejnery
-        otazkaObrazek.style.display = 'none';
-        otazkaObrazek.src = '';
-        obrazkyViceKontejner.innerHTML = '';
-        obrazkyViceKontejner.style.display = 'none';
-
-        // 2. Kontrolujeme, zda existuje pole 'viceObrazku'
-        if (otazkaData.viceObrazku && otazkaData.viceObrazku.length > 0) {
-            obrazkyViceKontejner.style.display = 'flex'; // Zobrazí flex kontejner pro více obrázků
-
-            otazkaData.viceObrazku.forEach(obrazekInfo => {
-                const div = document.createElement('div');
-                div.classList.add('obrazek-moznost');
-                div.innerHTML = `
-                    <img src="${obrazekInfo.soubor}" alt="Možnost ${obrazekInfo.popis}">
-                    <p style="margin-top: 5px;">${obrazekInfo.popis}</p>
-                `;
-                obrazkyViceKontejner.appendChild(div);
-            });
-
-        // 3. Pokud není 'viceObrazku', zkusíme standardní 'obrazek'
-        } else if (otazkaData.obrazek) {
-            otazkaObrazek.src = otazkaData.obrazek;
-            otazkaObrazek.style.display = 'block';
-        } 
-        // --- KONEC LOGIKY PRO OBRÁZKY ---
-
-
-        moznostiKontejner.innerHTML = '';
-        otazkaData.moznosti.forEach(moznost => {
-            const tlacitko = document.createElement('button');
-            tlacitko.textContent = moznost;
-            tlacitko.addEventListener('click', () => zkontrolovatOdpoved(moznost, tlacitko, otazkaData.spravna));
-            moznostiKontejner.appendChild(tlacitko);
-        });
+    if (aktualniOtazkaIndex >= celkovyPocetOtazek) { 
+        zobrazVysledek();
+        return;
     }
+
+    const otazkaData = otazky[aktualniOtazkaIndex];
+    odpovedZvolena = false;
+    dalsiTlacitko.disabled = true;
+
+    // VYLEPŠENÍ 1: Aktualizace počítadla otázek (např. 1/10)
+    pocitadloOtazek.textContent = `${aktualniOtazkaIndex + 1}/${celkovyPocetOtazek}`;
+    
+    // ZDE JE KLÍČOVÁ ZMĚNA: Zobrazí celý text otázky VČETNĚ ČÍSLA z databáze (např. "1. Strojvedoucí...")
+    otazkaText.textContent = otazkaData.otazka;
+    
+    // --- ZBYTEK LOGIKY PRO OBRÁZKY (ZŮSTÁVÁ STEJNÝ) ---
+    otazkaObrazek.style.display = 'none';
+    otazkaObrazek.src = '';
+    obrazkyViceKontejner.innerHTML = '';
+    obrazkyViceKontejner.style.display = 'none';
+
+    if (otazkaData.viceObrazku && otazkaData.viceObrazku.length > 0) {
+        obrazkyViceKontejner.style.display = 'flex';
+
+        otazkaData.viceObrazku.forEach(obrazekInfo => {
+            const div = document.createElement('div');
+            div.classList.add('obrazek-moznost');
+            div.innerHTML = `
+                <img src="${obrazekInfo.soubor}" alt="Možnost ${obrazekInfo.popis}">
+                <p style="margin-top: 5px;">${obrazekInfo.popis}</p>
+            `;
+            obrazkyViceKontejner.appendChild(div);
+        });
+
+    } else if (otazkaData.obrazek) {
+        otazkaObrazek.src = otazkaData.obrazek;
+        otazkaObrazek.style.display = 'block';
+    } 
+    // --- KONEC LOGIKY PRO OBRÁZKY ---
+
+
+    moznostiKontejner.innerHTML = '';
+    otazkaData.moznosti.forEach(moznost => {
+        const tlacitko = document.createElement('button');
+        tlacitko.textContent = moznost;
+        tlacitko.addEventListener('click', () => zkontrolovatOdpoved(moznost, tlacitko, otazkaData.spravna));
+        moznostiKontejner.appendChild(tlacitko);
+    });
+}
 
     function zkontrolovatOdpoved(zvolenaOdpoved, tlacitko, spravnaOdpoved) {
         if (odpovedZvolena) return;
@@ -2963,37 +2984,42 @@ const originalniOtazky = [
     }
 
     function zobrazVysledek() {
-        kvizElementy.style.display = 'none';
-        vysledekDiv.style.display = 'block';
+    kvizElementy.style.display = 'none';
+    vysledekDiv.style.display = 'block';
 
-        // Vypočet procentuální úspěšnosti (pro interní potřebu pro rozhodnutí)
-        const uspesnostProcenta = celkovyPocetOtazek > 0 
-            ? (skore / celkovyPocetOtazek) * 100 
-            : 0;
-        
-        // Logika pro výběr hlášky a barvy
-        let hlaska;
-        let barvaHlasky;
-        if (uspesnostProcenta >= 80) {
-            hlaska = "Jsi za vodou! 👍";
-            barvaHlasky = '#28a745'; // Zelená
-        } else {
-            hlaska = "Jsi V P***li 😤";
-            barvaHlasky = '#dc3545'; // Červená
-        }
-        
-        // ---------------------- ZMĚNY ZAČÍNAJÍ ZDE ----------------------
-        // Zobrazení výsledku (nyní opět včetně procent)
-        vysledekDiv.innerHTML = `
-            <h2>Kvíz dokončen! 🎉</h2>
-            <p>Vaše skóre je: ${skore} / ${celkovyPocetOtazek}</p>
-            <p style="font-size: 1.2em; font-weight: bold;">Úspěšnost: ${uspesnostProcenta}%</p>
-            <h3 style="color: ${barvaHlasky}; margin: 20px 0;">${hlaska}</h3>
-            <button id="restart-tlacitko" style="margin-top: 20px;">Restartovat kvíz</button>
-        `;
-// ---------------------- ZMĚNY KONČÍ ZDE ----------------------
-        document.getElementById('restart-tlacitko').addEventListener('click', restartKvizu);
+    const uspesnostProcenta = celkovyPocetOtazek > 0 
+        ? (skore / celkovyPocetOtazek) * 100 
+        : 0;
+    
+    let nadpisEmotikon;
+    let hlaska;
+    let barvaHlasky;
+    let h1Element = document.querySelector('h1'); // Získáme odkaz na TrainQuiz titulek
+    
+    // Nejprve odstraníme staré třídy, aby se při restartu neaplikovaly obě
+    h1Element.classList.remove('vysledek-uspech', 'vysledek-neuspech');
+
+    if (uspesnostProcenta >= 80) {
+        nadpisEmotikon = '🎉';
+        hlaska = "Jsi za vodou! 👍";
+        barvaHlasky = '#28a745'; // Zelená pro hlášku
+        h1Element.classList.add('vysledek-uspech'); // Aplikujeme modrou třídu
+    } else {
+        nadpisEmotikon = '👎';
+        hlaska = "Jsi V P***li 😤";
+        barvaHlasky = '#dc3545'; // Červená pro hlášku
+        h1Element.classList.add('vysledek-neuspech'); // Aplikujeme červenou třídu
     }
+    
+    vysledekDiv.innerHTML = `
+        <h2>Kvíz dokončen! ${nadpisEmotikon}</h2>
+        <p>Vaše skóre je: ${skore} / ${celkovyPocetOtazek}</p>
+        <p style="font-size: 1.2em; font-weight: bold;">Úspěšnost: ${uspesnostProcenta.toFixed(1)}%</p>
+        <h3 style="color: ${barvaHlasky}; margin: 20px 0;">${hlaska}</h3>
+        <button id="restart-tlacitko" style="margin-top: 20px;">Restartovat kvíz</button>
+    `;
+    document.getElementById('restart-tlacitko').addEventListener('click', restartKvizu);
+}
 
     function restartKvizu() {
         vysledekDiv.style.display = 'none';
@@ -3003,4 +3029,3 @@ const originalniOtazky = [
 
 </body>
 </html>
-
