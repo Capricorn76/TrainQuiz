@@ -4,244 +4,296 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TrainQuiz</title>
-    <style>
-        /* Základní styly pro lepší vzhled */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9; /* Světlé pozadí */
-            color: #333; /* Světlý text */
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s; /* Plynulý přechod */
-        }
+<style>
+/* Základní styly pro lepší vzhled */
+body {
+    font-family: Arial, sans-serif;
+    /* Tmavé/černé pozadí i pro světlý režim */
+    background-color: #121212; 
+    color: #333; 
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
+}
 
-        .kviz-kontejner {
-            background-color: #ffffff; /* Bílý kontejner */
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 800px; /* <--- ZMĚNĚNO NA 900PX */
-            transition: background-color 0.3s, box-shadow 0.3s;
-        }
-        
-        /* ---------------- NOVÉ STYLY PRO VÍCE OBRÁZKŮ (A, B, C) ---------------- */
-        .obrazky-vice {
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: space-around; 
-            gap: 15px; 
-            margin-bottom: 20px;
-            align-items: flex-start; 
-        }
+.kviz-kontejner {
+    background-color: #ffffff; /* Bílý kontejner */
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px; 
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
 
-        .obrazky-vice .obrazek-moznost {
-            text-align: center;
-            max-width: 30%; /* Zajišťuje, že se 3 vedle sebe vejdou */
-            flex-grow: 1; 
-            min-width: 150px; 
-        }
+/* ---------------- STYLY PRO VÍCE OBRÁZKŮ (A, B, C) ---------------- */
+.obrazky-vice {
+    display: flex; 
+    flex-wrap: wrap; 
+    justify-content: space-around; 
+    gap: 15px; 
+    margin-bottom: 20px;
+    align-items: flex-start; 
+}
 
-        .obrazky-vice img {
-            width: 100%; 
-            height: auto;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        /* ---------------- KONEC NOVÝCH STYLŮ ---------------- */
+.obrazky-vice .obrazek-moznost {
+    text-align: center;
+    max-width: 30%; 
+    flex-grow: 1; 
+    min-width: 150px; 
+}
 
-        /* Původní styl pro JEDEN obrázek */
-        #otazka-obrazek {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none; 
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
+.obrazky-vice img {
+    width: 100%; 
+    height: auto;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+/* ---------------- KONEC STYLŮ PRO OBRÁZKY ---------------- */
 
-        /* ---------------- DARK MODE STYLY ---------------- */
-        body.dark-mode {
-            background-color: #121212;
-            color: #e0e0e0;
-        }
+/* Původní styl pro JEDEN obrázek */
+#otazka-obrazek {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    display: none; 
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
 
-        body.dark-mode .kviz-kontejner {
-            background-color: #1e1e1e;
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
-        }
-        
-        body.dark-mode .obrazky-vice img {
-            box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
-        }
+/* ---------------- DARK MODE STYLY ---------------- */
+body.dark-mode {
+    color: #e0e0e0; 
+}
 
-        body.dark-mode h1,
-        body.dark-mode h2 {
-            color: #ffffff;
-        }
+body.dark-mode .kviz-kontejner {
+    background-color: #1e1e1e; 
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+}
 
-        body.dark-mode #otazka-text {
-            color: #c0c0c0;
-        }
+body.dark-mode .obrazky-vice img {
+    box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+}
 
-        body.dark-mode .moznosti-odpovedi button {
-            background-color: #333333;
-            color: #ffffff;
-        }
+body.dark-mode h1,
+body.dark-mode h2 {
+    color: #ffffff;
+}
 
-        body.dark-mode .moznosti-odpovedi button:hover {
-            background-color: #444444;
-        }
-        
-        body.dark-mode input[type="number"] {
-            background-color: #333333;
-            color: #ffffff;
-            border: 1px solid #555;
-        }
-        
-        body.dark-mode .moznosti-odpovedi button.spravne {
-            background-color: #558b2f;
-            color: #ffffff;
-        }
+body.dark-mode #otazka-text {
+    color: #c0c0c0;
+}
 
-        body.dark-mode .moznosti-odpovedi button.spatne {
-            background-color: #b71c1c;
-            color: #ffffff;
-        }
-        
-        body.dark-mode #start-tlacitko,
-        body.dark-mode #dalsi-tlacitko {
-             background-color: #0066cc;
-        }
-        
-        body.dark-mode #start-tlacitko:hover,
-        body.dark-mode #dalsi-tlacitko:hover {
-            background-color: #007bff;
-        }
-        /* ---------------- KONEC DARK MODE STYLŮ ---------------- */
+body.dark-mode .moznosti-odpovedi button {
+    background-color: #333333;
+    color: #ffffff;
+}
 
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
+body.dark-mode .moznosti-odpovedi button:hover {
+    background-color: #444444;
+}
 
-        h2 {
-            color: #004d99;
-            text-align: center;
-        }
+body.dark-mode input[type="number"] {
+    background-color: #333333;
+    color: #ffffff;
+    border: 1px solid #555;
+}
 
-        #otazka-text {
-            font-size: 1.2em;
-            margin-bottom: 20px;
-            color: #555;
-            min-height: 50px;
-        }
+body.dark-mode .moznosti-odpovedi button.spravne {
+    background-color: #558b2f;
+    color: #ffffff;
+}
 
-        .moznosti-odpovedi {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+body.dark-mode .moznosti-odpovedi button.spatne {
+    background-color: #b71c1c;
+    color: #ffffff;
+}
 
-        .moznosti-odpovedi button {
-            background-color: #e0e0e0;
-            border: none;
-            padding: 15px;
-            text-align: left;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s, color 0.3s;
-            font-size: 1em;
-            color: #333;
-            line-height: 1.4;
-        }
+body.dark-mode #start-tlacitko,
+body.dark-mode #dalsi-tlacitko {
+     background-color: #0066cc;
+}
 
-        .moznosti-odpovedi button:hover {
-            background-color: #d1d1d1;
-        }
+body.dark-mode #start-tlacitko:hover,
+body.dark-mode #dalsi-tlacitko:hover {
+    background-color: #007bff;
+}
 
-        .moznosti-odpovedi button.spravne {
-            background-color: #a8e6cf;
-            color: #1e6e4f;
-            font-weight: bold;
-        }
+body.dark-mode #dark-mode-prepninac {
+    background-color: #0066cc;
+}
 
-        .moznosti-odpovedi button.spatne {
-            background-color: #ff9a9a;
-            color: #9b2c2c;
-        }
-        
-        #dalsi-tlacitko, #start-tlacitko {
-             background-color: #004d99; 
-             color: white;
-             padding: 10px 20px;
-             border: none;
-             border-radius: 5px;
-             cursor: pointer;
-             font-size: 1.1em;
-             width: 100%;
-             transition: background-color 0.3s;
-             margin-top: 10px;
-        }
+body.dark-mode #dark-mode-prepninac:hover {
+    background-color: #007bff;
+}
 
-        #dalsi-tlacitko:hover, #start-tlacitko:hover {
-            background-color: #003366;
-        }
-        
-        #dalsi-tlacitko:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        
-        #vysledek {
-            text-align: center;
-            font-size: 1.5em;
-            color: #333;
-            margin-top: 20px;
-        }
-        
-        #dark-mode-prepninac {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 20px;
-            background-color: #004d99;
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            font-size: 0.9em;
-            transition: background-color 0.3s;
-            z-index: 1000;
-        }
-        
-        #dark-mode-prepninac:hover {
-            background-color: #003366;
-        }
-        
-        body.dark-mode #dark-mode-prepninac {
-            background-color: #0066cc;
-        }
-        
-        body.dark-mode #dark-mode-prepninac:hover {
-            background-color: #007bff;
-        }
+body.dark-mode #vysledek { 
+    color: #ffffff; 
+}
 
-    </style>
+body.dark-mode #restart-tlacitko {
+    background-color: #b71c1c; 
+}
+
+body.dark-mode #restart-tlacitko:hover {
+    background-color: #8b0000;
+}
+/* ---------------- KONEC DARK MODE STYLŮ ---------------- */
+
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h2 {
+    color: #004d99;
+    text-align: center;
+}
+
+#otazka-text {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    color: #555;
+    min-height: 50px;
+}
+
+.moznosti-odpovedi {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.moznosti-odpovedi button {
+    background-color: #e0e0e0;
+    border: none;
+    padding: 15px;
+    text-align: left;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s, color 0.3s;
+    font-size: 1em;
+    color: #333;
+    line-height: 1.4;
+}
+
+.moznosti-odpovedi button:hover {
+    background-color: #d1d1d1;
+}
+
+.moznosti-odpovedi button.spravne {
+    background-color: #a8e6cf;
+    color: #1e6e4f;
+    font-weight: bold;
+}
+
+.moznosti-odpovedi button.spatne {
+    background-color: #ff9a9a;
+    color: #9b2c2c;
+}
+
+/* ---------------- TLAČÍTKA START/DALŠÍ ---------------- */
+#dalsi-tlacitko, #start-tlacitko {
+     background-color: #004d99; 
+     color: white;
+     padding: 10px 20px;
+     border: none;
+     border-radius: 5px;
+     cursor: pointer;
+     font-size: 1.1em;
+     width: 100%;
+     transition: background-color 0.3s;
+     margin-top: 10px;
+}
+
+#dalsi-tlacitko:hover, #start-tlacitko:hover {
+    background-color: #003366;
+}
+
+#dalsi-tlacitko:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* ---------------- TLAČÍTKO RESTART (VYLEPŠENÉ) ---------------- */
+#restart-tlacitko {
+     background-color: #f44336; /* Červená barva pro reset */
+     color: white;
+     padding: 12px 25px; 
+     border: none;
+     border-radius: 8px;
+     cursor: pointer;
+     font-size: 1.1em;
+     width: 100%;
+     transition: background-color 0.3s;
+     margin-top: 25px !important; 
+     font-weight: bold;
+     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#restart-tlacitko:hover {
+    background-color: #d32f2f; /* Tmavší červená při najetí */
+}
+/* ---------------- KONEC TLAČÍTKA RESTART ---------------- */
+
+#vysledek {
+    text-align: center;
+    font-size: 1.5em;
+    color: #333;
+    margin-top: 20px;
+}
+
+#dark-mode-prepninac {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 20px;
+    background-color: #004d99;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-size: 0.9em;
+    transition: background-color 0.3s;
+    z-index: 1000;
+}
+
+#dark-mode-prepninac:hover {
+    background-color: #003366;
+}
+
+/* ---------------- STYLY PRO START SCREEN (NASTAVENÍ) ---------------- */
+
+/* Zvýraznění a zvětšení textu popisku */
+label[for="pocetOtazek"] {
+    font-size: 1.2em;
+    font-weight: bold;
+    display: block; 
+    margin: 15px 0 10px 0; 
+    /* --- NOVÁ ZMĚNA ZDE: Zelená barva pro popisek --- */
+    color: #28a745; 
+}
+
+/* Zvýšení výšky pole pro zadání počtu otázek */
+#pocetOtazek {
+    padding: 15px !important;
+    font-size: 1.2em;
+}
+/* ---------------- KONEC STYLŮ PRO START SCREEN ---------------- */
+</style>
 </head>
 <body>
 
 <button id="dark-mode-prepninac">Režim: Světlý ☀️</button>
 
 <div class="kviz-kontejner">
-    <h1>TrainQuiz 🚂</h1>
+    <h1>TrainQuiz</h1>
 
     <div id="start-screen">
         <h2>Nastavení kvízu</h2>
@@ -268,7 +320,7 @@
 
 <script>
     // ----------------------------------------------------
-    // DARK MODE LOGIKA
+    // DARK MODE LOGIKA (Vráceno)
     // ----------------------------------------------------
     const darkModePrepninac = document.getElementById('dark-mode-prepninac');
     const body = document.body;
@@ -300,7 +352,7 @@
     });
 
     // ----------------------------------------------------
-    // DATABÁZE OTÁZEK (Nyní 80 otázek) - (ZKRÁCENO pro přehlednost)
+    // DATABÁZE OTÁZEK (ZKRÁCENO pro přehlednost)
     // ----------------------------------------------------
 const originalniOtazky = [
     // 1.
@@ -1557,7 +1609,7 @@ const originalniOtazky = [
     {
         otazka: "179. Při odstavení osobních vozů a zajištění proti ujetí započítáváme zajišťovací sílu podle kterého údaje na voze?",
         moznosti: ["a)", "b)", "c)"],
-        spravna: "c)", 
+        spravna: "c)", // Oprava, doplněny chybějící možnosti, předpokládá se text v dotazu vázaný na obrázek.
         obrazek: "obrazky/179.jpg"
     },
     // 180.
@@ -2796,7 +2848,7 @@ const originalniOtazky = [
 
 
     // Globální proměnná pro aktivní sadu otázek
-     let otazky = [];
+    let otazky = [];
     let aktualniOtazkaIndex = 0;
     let skore = 0;
     let odpovedZvolena = false;
@@ -2917,11 +2969,33 @@ const originalniOtazky = [
     function zobrazVysledek() {
         kvizElementy.style.display = 'none';
         vysledekDiv.style.display = 'block';
-        vysledekDiv.innerHTML = `
-            <h2>Kvíz dokončen! 🎉</h2>
-            <p>Vaše skóre je: ${skore} / ${celkovyPocetOtazek}</p>
-            <button id="restart-tlacitko" style="margin-top: 20px;">Restartovat kvíz</button>
-        `;
+
+        // Vypočet procentuální úspěšnosti (pro interní potřebu pro rozhodnutí)
+        const uspesnostProcenta = celkovyPocetOtazek > 0 
+            ? (skore / celkovyPocetOtazek) * 100 
+            : 0;
+        
+        // Logika pro výběr hlášky a barvy
+        let hlaska;
+        let barvaHlasky;
+        if (uspesnostProcenta >= 80) {
+            hlaska = "Jsi za vodou! 👍";
+            barvaHlasky = '#28a745'; // Zelená
+        } else {
+            hlaska = "Jsi V P***li 😤";
+            barvaHlasky = '#dc3545'; // Červená
+        }
+        
+        // ---------------------- ZMĚNY ZAČÍNAJÍ ZDE ----------------------
+        // Zobrazení výsledku (nyní opět včetně procent)
+        vysledekDiv.innerHTML = `
+            <h2>Kvíz dokončen! 🎉</h2>
+            <p>Vaše skóre je: ${skore} / ${celkovyPocetOtazek}</p>
+            <p style="font-size: 1.2em; font-weight: bold;">Úspěšnost: ${uspesnostProcenta}%</p>
+            <h3 style="color: ${barvaHlasky}; margin: 20px 0;">${hlaska}</h3>
+            <button id="restart-tlacitko" style="margin-top: 20px;">Restartovat kvíz</button>
+        `;
+// ---------------------- ZMĚNY KONČÍ ZDE ----------------------
         document.getElementById('restart-tlacitko').addEventListener('click', restartKvizu);
     }
 
@@ -2933,23 +3007,3 @@ const originalniOtazky = [
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
