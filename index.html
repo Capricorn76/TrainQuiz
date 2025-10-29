@@ -147,6 +147,16 @@ body.dark-mode #restart-tlacitko {
 body.dark-mode #restart-tlacitko:hover {
     background-color: #8b0000;
 }
+
+/* NOVÝ STYL: pro zobrazení zbývajících otázek v Dark Mode */
+body.dark-mode #zbyle-otazky {
+    color: #81C784; /* Světlejší zelená na tmavém pozadí */
+}
+
+/* NOVÝ STYL: Zajištění viditelnosti labelu v Dark Mode */
+body.dark-mode label[for="pocetOtazek"] {
+    color: #c0c0c0;
+}
 /* ---------------- KONEC DARK MODE STYLŮ ---------------- */
 
 h1 {
@@ -236,7 +246,7 @@ h2 {
     cursor: not-allowed;
 }
 
-/* ---------------- TLAČÍTKO RESTART (VYLEPŠENÉ) ---------------- */
+/* ---------------- TLAČÍTKA RESTART (VYLEPŠENÉ) ---------------- */
 #restart-tlacitko {
      background-color: #f44336; 
      color: white;
@@ -298,6 +308,16 @@ label[for="pocetOtazek"] {
     padding: 15px !important;
     font-size: 2.4em;
 }
+
+/* NOVÝ STYL: pro zobrazení zbývajících otázek (ve světlém režimu) */
+#zbyle-otazky {
+    font-size: 1.1em; 
+    color: #4CAF50; 
+    font-weight: bold; 
+    text-align: center; 
+    margin-bottom: 20px;
+}
+
 /* ---------------- KONEC STYLŮ PRO START SCREEN ---------------- */
 
 </style>
@@ -311,10 +331,11 @@ label[for="pocetOtazek"] {
     <p id="pocitadlo-otazek"></p>
 
     <div id="start-screen">
-    <h2>Nastavení kvízu</h2>
-    <label for="pocetOtazek">Vyberte počet otázek (Max: 355):</label>
-    <input type="number" id="pocetOtazek" min="1" max="355" autofocus>
-    <button id="start-tlacitko">Spustit kvíz</button>
+        <h2>Nastavení kvízu</h2>
+        <p id="zbyle-otazky"></p>
+        <label for="pocetOtazek">Vyberte počet otázek (Max: 355):</label>
+        <input type="number" id="pocetOtazek" min="1" max="355" autofocus>
+        <button id="start-tlacitko">Spustit kvíz</button>
     </div>
 
     <div id="kviz-elementy" style="display:none;">
@@ -366,7 +387,6 @@ label[for="pocetOtazek"] {
         const isCurrentlyDark = body.classList.contains('dark-mode');
         setDarkMode(!isCurrentlyDark);
     });
-
     // ----------------------------------------------------
     // DATABÁZE OTÁZEK (ZKRÁCENO pro přehlednost)
     // ----------------------------------------------------
@@ -2866,6 +2886,16 @@ const originalniOtazky = [
     let odpovedZvolena = false;
     let celkovyPocetOtazek = 0;
 
+    // --- PERZISTENTNÍ PROMĚNNÉ ---
+    let celyBalicekOtazekID = []; // ID (Indexy 0-354) otázek v náhodném pořadí
+    let indexDalsiOtazky = 0;    // Pozice, odkud se má brát v celyBalicekOtazekID
+    const MAX_POCET_OTAZEK = originalniOtazky.length; // 355
+    
+    // --- NOVÁ PROMĚNNÁ PRO RECYKLACI OTÁZEK ---
+    // Skladuje indexy (0-354) otázek, které v rámci aktuálního kvízu nebyly zodpovězeny správně.
+    let nespravneOdpovezeneOriginalniIndexy = [];
+    // ------------------------------------------
+
     const startScreen = document.getElementById('start-screen');
     const kvizElementy = document.getElementById('kviz-elementy');
     const pocetOtazekInput = document.getElementById('pocetOtazek');
@@ -2876,19 +2906,104 @@ const originalniOtazky = [
     const moznostiKontejner = document.getElementById('moznosti-kontejner');
     const dalsiTlacitko = document.getElementById('dalsi-tlacitko');
     const vysledekDiv = document.getElementById('vysledek');
-    // NOVÝ ELEMENT PRO POČÍTADLO
     const pocitadloOtazek = document.getElementById('pocitadlo-otazek'); 
+    const zbyleOtazkyElement = document.getElementById('zbyle-otazky');
+
+
+// ----------------------------------------------------
+// PERZISTENTNÍ LOGIKA (ULOŽENÍ STAVU DO LOCALSTORAGE)
+// ----------------------------------------------------
+
+function ulozitStav() {
+    localStorage.setItem('celyBalicekOtazekID', JSON.stringify(celyBalicekOtazekID));
+    localStorage.setItem('indexDalsiOtazky', indexDalsiOtazky);
+}
+
+function zamichatPole(pole) {
+    for (let i = pole.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pole[i], pole[j]] = [pole[j], pole[i]];
+    }
+}
+
+function inicializovatNovyBalicek() {
+    // 1. Vytvoří seznam ID (indexů od 0 do MAX_POCET_OTAZEK - 1)
+    celyBalicekOtazekID = Array.from({ length: MAX_POCET_OTAZEK }, (_, i) => i);
+    // 2. Zamíchá ID
+    zamichatPole(celyBalicekOtazekID);
+    // 3. Vynuluje index
+    indexDalsiOtazky = 0;
+    // 4. Uloží stav
+    ulozitStav();
+}
+
+function nacistNeboInicializovatBalicek() {
+    const ulozenyBalicek = localStorage.getItem('celyBalicekOtazekID');
+    const ulozenyIndex = localStorage.getItem('indexDalsiOtazky');
+
+    if (ulozenyBalicek && ulozenyIndex !== null && JSON.parse(ulozenyBalicek).length > 0) {
+        celyBalicekOtazekID = JSON.parse(ulozenyBalicek);
+        indexDalsiOtazky = parseInt(ulozenyIndex);
+    } else {
+        // Inicializace při prvním spuštění, nebo pokud byl cyklus již dokončen
+        inicializovatNovyBalicek();
+    }
+    
+    // Aktualizace zbývajících otázek na startovací obrazovce
+    if (zbyleOtazkyElement) {
+        // NOVÁ LOGIKA: Délka balíčku je skutečný počet zbývajících otázek
+        const zbyva = celyBalicekOtazekID.length; 
+        zbyleOtazkyElement.textContent = `Zbývá dokončit: ${zbyva} unikátních otázek z celkového cyklu ${MAX_POCET_OTAZEK}.`;
+    }
+}
+
+// FUNKCE UPRAVENA: Vraci otázky s jejich originalniIndexem
+function vybratOtazkyZBalicku(pocet) {
+    const vybraneIndexy = celyBalicekOtazekID.slice(indexDalsiOtazky, indexDalsiOtazky + pocet);
+    
+    // Mapujeme indexy zpět na objekty otázek a přidáme jejich PŮVODNÍ index
+    const vybraneOtazky = vybraneIndexy.map(originalIndex => ({
+        ...originalniOtazky[originalIndex],
+        originalniIndex: originalIndex 
+    }));
+
+    return vybraneOtazky;
+}
+
+// Volání při načtení stránky (inicializace)
+nacistNeboInicializovatBalicek();
+
 
     startTlacitko.addEventListener('click', spustitKviz);
     dalsiTlacitko.addEventListener('click', dalsiOtazka);
 
     function spustitKviz() {
         const pocet = parseInt(pocetOtazekInput.value);
-        // POZOR: Ponechal jsem max na 20, ačkoliv v HTML máte 355.
-        // Upravte v HTML max="355" a zde "pocet <= 355" pro plnou funkčnost
-        if (pocet > 0 && pocet <= 355) { 
-            celkovyPocetOtazek = pocet;
-            otazky = vybratNahodneOtazky(originalniOtazky, celkovyPocetOtazek);
+        
+        // Zvolený počet nesmí překročit zbývající otázky v balíčku
+        const zbyvaOtazekVBalicku = celyBalicekOtazekID.length;
+
+        if (pocet > 0 && pocet <= MAX_POCET_OTAZEK) { 
+            
+            // Kontrola konce celého cyklu
+            if (zbyvaOtazekVBalicku === 0) {
+                 alert(`Celý cyklus ${MAX_POCET_OTAZEK} otázek je dokončen! Bude spuštěn nový cyklus.`);
+                 inicializovatNovyBalicek();
+                 nacistNeboInicializovatBalicek(); // Aktualizuj zobrazení
+                 return;
+            }
+
+            // Testujeme jen tolik, kolik zbylo
+            const pocetKvizu = Math.min(pocet, zbyvaOtazekVBalicku);
+
+            celkovyPocetOtazek = pocetKvizu;
+            
+            // PŘIDÁNO: Vynulovat seznam špatných odpovědí pro nový běh
+            nespravneOdpovezeneOriginalniIndexy = []; 
+
+            // Použití nové funkce pro výběr otázek z perzistentního balíčku
+            otazky = vybratOtazkyZBalicku(pocetKvizu);
+            
             aktualniOtazkaIndex = 0;
             skore = 0;
             
@@ -2897,16 +3012,12 @@ const originalniOtazky = [
             kvizElementy.style.display = 'block';
             
             zobrazOtazku();
+
         } else {
-            alert('Zvolte platný počet otázek (1 až 355).');
+            alert(`Zvolte platný počet otázek (1 až ${MAX_POCET_OTAZEK}).`);
         }
     }
 
-    function vybratNahodneOtazky(zdrojOtazek, pocet) {
-        const zamichane = zdrojOtazek.sort(() => 0.5 - Math.random());
-        return zamichane.slice(0, pocet);
-    }
-    
     function zobrazOtazku() {
     if (aktualniOtazkaIndex >= celkovyPocetOtazek) { 
         zobrazVysledek();
@@ -2917,10 +3028,10 @@ const originalniOtazky = [
     odpovedZvolena = false;
     dalsiTlacitko.disabled = true;
 
-    // VYLEPŠENÍ 1: Aktualizace počítadla otázek (např. 1/10)
+    // Aktualizace počítadla otázek (např. 1/10)
     pocitadloOtazek.textContent = `${aktualniOtazkaIndex + 1}/${celkovyPocetOtazek}`;
     
-    // ZDE JE KLÍČOVÁ ZMĚNA: Zobrazí celý text otázky VČETNĚ ČÍSLA z databáze (např. "1. Strojvedoucí...")
+    // Zobrazí celý text otázky VČETNĚ ČÍSLA z databáze
     otazkaText.textContent = otazkaData.otazka;
     
     // --- ZBYTEK LOGIKY PRO OBRÁZKY (ZŮSTÁVÁ STEJNÝ) ---
@@ -2958,59 +3069,96 @@ const originalniOtazky = [
     });
 }
 
-    function zkontrolovatOdpoved(zvolenaOdpoved, tlacitko, spravnaOdpoved) {
-        if (odpovedZvolena) return;
-        odpovedZvolena = true;
-        dalsiTlacitko.disabled = false;
+// FUNKCE UPRAVENA: Sleduje špatné odpovědi
+function zkontrolovatOdpoved(zvolenaOdpoved, tlacitko, spravnaOdpoved) {
+    if (odpovedZvolena) return;
+    odpovedZvolena = true;
+    dalsiTlacitko.disabled = false;
 
-        const vsechnaTlacitka = moznostiKontejner.querySelectorAll('button');
-        vsechnaTlacitka.forEach(btn => {
-            btn.disabled = true;
-            if (btn.textContent === spravnaOdpoved) {
-                btn.classList.add('spravne');
-            } else if (btn.textContent === zvolenaOdpoved) {
-                btn.classList.add('spatne');
-            }
-        });
-
-        if (zvolenaOdpoved === spravnaOdpoved) {
-            skore++;
+    const vsechnaTlacitka = moznostiKontejner.querySelectorAll('button');
+    vsechnaTlacitka.forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === spravnaOdpoved) {
+            btn.classList.add('spravne');
+        } else if (btn.textContent === zvolenaOdpoved) {
+            btn.classList.add('spatne');
         }
+    });
+
+    if (zvolenaOdpoved === spravnaOdpoved) {
+        skore++;
+    } else {
+        // PŘIDÁNO: Pokud je odpověď špatná, uložíme PŮVODNÍ index otázky k recyklaci
+        const otazkaData = otazky[aktualniOtazkaIndex];
+        // Uloží se index 0-354, ne index v rámci aktuálního malého testu
+        nespravneOdpovezeneOriginalniIndexy.push(otazkaData.originalniIndex);
     }
+}
 
     function dalsiOtazka() {
         aktualniOtazkaIndex++;
         zobrazOtazku();
     }
 
-    function zobrazVysledek() {
+// FUNKCE UPRAVENA: Rekonstruuje balíček, aby se špatné otázky opakovaly
+function zobrazVysledek() {
+    
+    // **NOVÁ LOGIKA PRO UKLÁDÁNÍ STAVU A RECYKLACI OTÁZEK:**
+    
+    // 1. Otázky z aktuálního běhu, které nebyly správně (ty, které se vrací do balíčku)
+    const otazkyKRecyklaci = nespravneOdpovezeneOriginalniIndexy; 
+    
+    // 2. Nový začátek zbytku balíčku (za rozsahem aktuálně testovaných otázek)
+    // Otázky v aktuálním kvízu, které byly správné, jsou automaticky vyřazeny.
+    const novyIndexDalsiOtazky = indexDalsiOtazky + celkovyPocetOtazek; 
+    
+    // 3. Zbytek neotestovaného balíčku (původně za aktuálním testem)
+    const zbytekBalicku = celyBalicekOtazekID.slice(novyIndexDalsiOtazky);
+    
+    // 4. Vytvoříme NOVÝ celyBalicekOtazekID (Recyklované otázky jdou na začátek)
+    let novyCelyBalicek = [...otazkyKRecyklaci]; 
+    novyCelyBalicek.push(...zbytekBalicku); 
+    
+    // 5. Aktualizace perzistence
+    celyBalicekOtazekID = novyCelyBalicek;
+    // indexDalsiOtazky se vrací na 0, protože se testuje z nového, zkráceného balíčku
+    indexDalsiOtazky = 0; 
+    
+    ulozitStav();
+
+    // 6. Kontrola konce celého cyklu
+    if (celyBalicekOtazekID.length === 0) {
+        inicializovatNovyBalicek(); 
+        setTimeout(() => alert(`Gratulace! Všechny otázky byly dokončeny SPRÁVNĚ. Kvíz začíná novým, náhodně zamíchaným cyklem ${MAX_POCET_OTAZEK} otázek.`), 100);
+    }
+    
+    // Zbytek logiky zobrazení výsledků (beze změny)
     kvizElementy.style.display = 'none';
     vysledekDiv.style.display = 'block';
 
     const uspesnostProcenta = celkovyPocetOtazek > 0 
         ? (skore / celkovyPocetOtazek) * 100 
         : 0;
-    
+        
     let nadpisEmotikon;
     let hlaska;
     let barvaHlasky;
-    let h1Element = document.querySelector('h1'); // Získáme odkaz na TrainQuiz titulek
-    
-    // Nejprve odstraníme staré třídy, aby se při restartu neaplikovaly obě
+    let h1Element = document.querySelector('h1'); 
+        
     h1Element.classList.remove('vysledek-uspech', 'vysledek-neuspech');
 
     if (uspesnostProcenta >= 80) {
         nadpisEmotikon = '🎉';
         hlaska = "Jsi za vodou! 👍";
-        barvaHlasky = '#28a745'; // Zelená pro hlášku
-        h1Element.classList.add('vysledek-uspech'); // Aplikujeme modrou třídu
+        barvaHlasky = '#28a745'; 
+        h1Element.classList.add('vysledek-uspech'); 
     } else {
         nadpisEmotikon = '👎';
         hlaska = "Jsi V P***li 😤";
-        barvaHlasky = '#dc3545'; // Červená pro hlášku
-        h1Element.classList.add('vysledek-neuspech'); // Aplikujeme červenou třídu
+        barvaHlasky = '#dc3545'; 
+        h1Element.classList.add('vysledek-neuspech'); 
     }
-    
+        
     vysledekDiv.innerHTML = `
         <h2>Kvíz dokončen! ${nadpisEmotikon}</h2>
         <p>Vaše skóre je: ${skore} / ${celkovyPocetOtazek}</p>
@@ -3021,16 +3169,19 @@ const originalniOtazky = [
     document.getElementById('restart-tlacitko').addEventListener('click', restartKvizu);
 }
 
+    // FUNKCE UPRAVENA: Aktualizuje perzistentní stav
     function restartKvizu() {
     // 1. Vynulování zadané hodnoty
-    pocetOtazekInput.value = ''; // Nastaví hodnotu inputu na prázdný řetězec
+    pocetOtazekInput.value = ''; 
 
-    // 2. Přesun na startovací obrazovku (z původního kódu)
+    // 2. Přesun na startovací obrazovku
     vysledekDiv.style.display = 'none';
     startScreen.style.display = 'block';
 
-    // 3. (Volitelné) Zajistí okamžité zaostření
-    // I když máte autofocus v HTML, pro jistotu po dynamické změně
+    // 3. Znovu načtení stavu pro aktualizaci zobrazení zbývajících otázek
+    nacistNeboInicializovatBalicek(); 
+
+    // 4. (Volitelné) Zajistí okamžité zaostření
     pocetOtazekInput.focus(); 
 }
 </script>
