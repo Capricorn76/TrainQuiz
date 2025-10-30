@@ -3101,6 +3101,8 @@ function zkontrolovatOdpoved(zvolenaOdpoved, tlacitko, spravnaOdpoved) {
     }
 
 // FUNKCE UPRAVENA: Rekonstruuje balíček, aby se špatné otázky opakovaly
+// ... (začátek funkce zobrazVysledek() beze změny)
+
 function zobrazVysledek() {
     
     // **NOVÁ LOGIKA PRO UKLÁDÁNÍ STAVU A RECYKLACI OTÁZEK:**
@@ -3109,15 +3111,18 @@ function zobrazVysledek() {
     const otazkyKRecyklaci = nespravneOdpovezeneOriginalniIndexy; 
     
     // 2. Nový začátek zbytku balíčku (za rozsahem aktuálně testovaných otázek)
-    // Otázky v aktuálním kvízu, které byly správné, jsou automaticky vyřazeny.
     const novyIndexDalsiOtazky = indexDalsiOtazky + celkovyPocetOtazek; 
     
     // 3. Zbytek neotestovaného balíčku (původně za aktuálním testem)
     const zbytekBalicku = celyBalicekOtazekID.slice(novyIndexDalsiOtazky);
     
-    // 4. Vytvoříme NOVÝ celyBalicekOtazekID (Recyklované otázky jdou na začátek)
+    // 4. Vytvoříme NOVÝ celyBalicekOtazekID (Recyklované otázky jdou na začátek, ale budeme míchat)
     let novyCelyBalicek = [...otazkyKRecyklaci]; 
     novyCelyBalicek.push(...zbytekBalicku); 
+
+    // **ZDE JE ZMĚNA: Zamíchání celého nového balíčku**
+    zamichatPole(novyCelyBalicek); // Zamíchá recyklované otázky do zbytku balíčku
+    // **KONEC ZMĚNY**
     
     // 5. Aktualizace perzistence
     celyBalicekOtazekID = novyCelyBalicek;
@@ -3125,6 +3130,8 @@ function zobrazVysledek() {
     indexDalsiOtazky = 0; 
     
     ulozitStav();
+
+// ... (zbytek funkce zobrazVysledek() beze změny)
 
     // 6. Kontrola konce celého cyklu
     if (celyBalicekOtazekID.length === 0) {
