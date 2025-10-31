@@ -331,12 +331,16 @@ label[for="pocetOtazek"] {
     <p id="pocitadlo-otazek"></p>
 
     <div id="start-screen">
-        <h2>Nastavení kvízu</h2>
-        <p id="zbyle-otazky"></p>
-        <label for="pocetOtazek">Vyberte počet otázek (Max: 355):</label>
-        <input type="number" id="pocetOtazek" min="1" max="355" autofocus>
-        <button id="start-tlacitko">Spustit kvíz</button>
-    </div>
+        <h2>Nastavení kvízu</h2>
+        <p id="zbyle-otazky"></p>
+        <label for="pocetOtazek">Vyberte počet otázek (Max: 355):</label>
+        <input type="number" id="pocetOtazek" min="1" max="355" autofocus>
+
+                <div id="statistiky-uspesnosti" style="margin-top: 20px;">
+                    </div>
+        <button id="reset-statistiky-tlacitko" style="margin-top: 10px; background-color: #8b0000; color: white; padding: 10px; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-size: 1em;">Resetovat celkové statistiky 🗑️</button>
+                <button id="start-tlacitko" style="margin-top: 15px;">Spustit kvíz</button>
+    </div>
 
     <div id="kviz-elementy" style="display:none;">
     
@@ -2886,6 +2890,11 @@ const originalniOtazky = [
     let odpovedZvolena = false;
     let celkovyPocetOtazek = 0;
 
+    // --- NOVÉ STATISTIKY ---
+    let totalSpravne = 0; // Celkový počet správných odpovědí
+    let totalSpatne = 0;  // Celkový počet špatných odpovědí
+    // -----------------------
+
     // --- PERZISTENTNÍ PROMĚNNÉ ---
     let celyBalicekOtazekID = []; // ID (Indexy 0-354) otázek v náhodném pořadí
     let indexDalsiOtazky = 0;    // Pozice, odkud se má brát v celyBalicekOtazekID
@@ -2909,6 +2918,13 @@ const originalniOtazky = [
     const pocitadloOtazek = document.getElementById('pocitadlo-otazek'); 
     const zbyleOtazkyElement = document.getElementById('zbyle-otazky');
 
+    // *** DOPLNĚNÍ CHYBĚJÍCÍ DEFINICE ***
+    const statistikyUspesnostiDiv = document.getElementById('statistiky-uspesnosti');
+
+    // --- NOVÝ ELEMENT TLAČÍTKA RESET ---
+    const resetStatistikyTlacitko = document.getElementById('reset-statistiky-tlacitko');
+    // ------------------------------------
+
 
 // ----------------------------------------------------
 // PERZISTENTNÍ LOGIKA (ULOŽENÍ STAVU DO LOCALSTORAGE)
@@ -2917,6 +2933,9 @@ const originalniOtazky = [
 function ulozitStav() {
     localStorage.setItem('celyBalicekOtazekID', JSON.stringify(celyBalicekOtazekID));
     localStorage.setItem('indexDalsiOtazky', indexDalsiOtazky);
+    // NOVÉ: Ukládání statistik
+    localStorage.setItem('totalSpravne', totalSpravne);
+    localStorage.setItem('totalSpatne', totalSpatne);
 }
 
 function zamichatPole(pole) {
@@ -2940,6 +2959,9 @@ function inicializovatNovyBalicek() {
 function nacistNeboInicializovatBalicek() {
     const ulozenyBalicek = localStorage.getItem('celyBalicekOtazekID');
     const ulozenyIndex = localStorage.getItem('indexDalsiOtazky');
+    // NOVÉ: Načítání statistik
+    const ulozenyTotalSpravne = localStorage.getItem('totalSpravne');
+    const ulozenyTotalSpatne = localStorage.getItem('totalSpatne');
 
     if (ulozenyBalicek && ulozenyIndex !== null && JSON.parse(ulozenyBalicek).length > 0) {
         celyBalicekOtazekID = JSON.parse(ulozenyBalicek);
@@ -2949,11 +2971,26 @@ function nacistNeboInicializovatBalicek() {
         inicializovatNovyBalicek();
     }
     
-    // Aktualizace zbývajících otázek na startovací obrazovce
-    if (zbyleOtazkyElement) {
-        // NOVÁ LOGIKA: Délka balíčku je skutečný počet zbývajících otázek
+    // NOVÉ: Načtení a inicializace statistik
+    totalSpravne = ulozenyTotalSpravne ? parseInt(ulozenyTotalSpravne) : 0;
+    totalSpatne = ulozenyTotalSpatne ? parseInt(ulozenyTotalSpatne) : 0;
+    
+    // Aktualizace zbývajících otázek a zobrazení statistik
+    if (zbyleOtazkyElement && statistikyUspesnostiDiv) {
         const zbyva = celyBalicekOtazekID.length; 
         zbyleOtazkyElement.textContent = `Zbývá dokončit: ${zbyva} unikátních otázek z celkového cyklu ${MAX_POCET_OTAZEK}.`;
+        
+        // Zobrazení průměrné úspěšnosti
+        const celkemOdpovezeno = totalSpravne + totalSpatne;
+        const uspesnost = celkemOdpovezeno > 0 ? ((totalSpravne / celkemOdpovezeno) * 100).toFixed(1) : '0.0';
+        
+        // NOVÉ zobrazení statistik
+        statistikyUspesnostiDiv.innerHTML = `
+        <hr style="border-top: 1px solid #ddd; margin: 0 0 15px 0;">
+        <h3>Celkové statistiky:</h3>
+        <p>Správně: <strong>${totalSpravne}</strong> / Špatně: <strong>${totalSpatne}</strong></p>
+        <p style="font-size: 1.2em; color: #004d99; font-weight: bold; margin-bottom: 5px;">Úspěšnost (odpovězeno): ${uspesnost}%</p>
+   `;
     }
 }
 
@@ -2976,6 +3013,9 @@ nacistNeboInicializovatBalicek();
 
     startTlacitko.addEventListener('click', spustitKviz);
     dalsiTlacitko.addEventListener('click', dalsiOtazka);
+
+    // NOVÝ LISTENER PRO RESET (přidáváme tento řádek)
+    resetStatistikyTlacitko.addEventListener('click', resetStatistiky);
 
     function spustitKviz() {
         const pocet = parseInt(pocetOtazekInput.value);
@@ -3053,15 +3093,24 @@ nacistNeboInicializovatBalicek();
             obrazkyViceKontejner.appendChild(div);
         });
 
+    // Nový kód, který zajišťuje míchání možností
     } else if (otazkaData.obrazek) {
         otazkaObrazek.src = otazkaData.obrazek;
         otazkaObrazek.style.display = 'block';
     } 
     // --- KONEC LOGIKY PRO OBRÁZKY ---
 
+    // **NOVÁ LOGIKA PRO MÍCHÁNÍ ODPOVĚDÍ**
+    // 1. Vytvoříme KOPii pole možností odpovědí, abychom neovlivnili původní data
+    const zamichaneMoznosti = [...otazkaData.moznosti];
+    // 2. Zamícháme kopii pomocí již existující funkce zamichatPole
+    zamichatPole(zamichaneMoznosti); 
+    // **KONEC NOVÉ LOGIKY**
+
 
     moznostiKontejner.innerHTML = '';
-    otazkaData.moznosti.forEach(moznost => {
+    // Vykreslujeme ZAMÍCHANÉ možnosti (používáme zamichaneMoznosti)
+    zamichaneMoznosti.forEach(moznost => {
         const tlacitko = document.createElement('button');
         tlacitko.textContent = moznost;
         tlacitko.addEventListener('click', () => zkontrolovatOdpoved(moznost, tlacitko, otazkaData.spravna));
@@ -3085,10 +3134,17 @@ function zkontrolovatOdpoved(zvolenaOdpoved, tlacitko, spravnaOdpoved) {
         }
     });
 
+    // ... (uvnitř funkce zkontrolovatOdpoved)
+
     if (zvolenaOdpoved === spravnaOdpoved) {
         skore++;
+        // NOVÉ: Inkrementace celkových správných odpovědí
+        totalSpravne++;
     } else {
-        // PŘIDÁNO: Pokud je odpověď špatná, uložíme PŮVODNÍ index otázky k recyklaci
+        // NOVÉ: Inkrementace celkových špatných odpovědí
+        totalSpatne++; 
+
+        // PŮVODNÍ KÓD: Uložení indexu špatné otázky k recyklaci
         const otazkaData = otazky[aktualniOtazkaIndex];
         // Uloží se index 0-354, ne index v rámci aktuálního malého testu
         nespravneOdpovezeneOriginalniIndexy.push(otazkaData.originalniIndex);
@@ -3175,6 +3231,22 @@ function zobrazVysledek() {
     `;
     document.getElementById('restart-tlacitko').addEventListener('click', restartKvizu);
 }
+    // --- NOVÁ FUNKCE PRO RESET STATISTIK ---
+    function resetStatistiky() {
+    const potvrzeni = confirm("Opravdu chcete VYNULOVAT celkové statistiky úspěšnosti (Správně/Špatně)? Toto je nevratná akce.");
+    
+    if (potvrzeni) {
+        totalSpravne = 0;
+        totalSpatne = 0;
+        localStorage.removeItem('totalSpravne');
+        localStorage.removeItem('totalSpatne');
+        
+        // Znovu načíst a zobrazit aktualizované statistiky
+        nacistNeboInicializovatBalicek(); 
+        alert("Statistiky úspěšnosti byly vynulovány. Můžete začít s čistým štítem! 👍");
+    }
+}
+    // ---------------------------------------
 
     // FUNKCE UPRAVENA: Aktualizuje perzistentní stav
     function restartKvizu() {
